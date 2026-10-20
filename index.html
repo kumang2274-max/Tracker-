@@ -6,8 +6,6 @@
 <meta name="theme-color" content="#171717">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Daily Check-in Tracker</title>
 <style>
 :root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#171717;background:#f5f5f5}
@@ -35,13 +33,47 @@ table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}th,t
 .rowbtn{border:0;background:none;text-decoration:underline;padding:0;color:#555;font-size:12px}
 .note{font-size:12px;color:#666;line-height:1.5;margin-top:14px}
 @media(max-width:390px){.card{padding:15px}.grid{gap:14px 9px}input{padding:12px 10px}.stats{grid-template-columns:1fr 1fr}}
+
+.workout{background:#fff;border:1px solid #e1e1e1;border-radius:22px;padding:18px;margin:0 0 20px}
+.whead{display:flex;justify-content:space-between;gap:10px;align-items:start}.wtitle{font-size:21px;font-weight:800;margin:4px 0}.muted{color:#666;font-size:13px}
+.wtag{background:#eee;border-radius:20px;padding:6px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+.exlist{display:grid;gap:9px;margin-top:14px}.ex{display:flex;align-items:center;gap:12px;border:1px solid #eee;border-radius:14px;padding:10px}
+.expic{width:60px;height:60px;display:grid;place-items:center;border-radius:12px;background:#f1f1f1;font-size:30px;flex-shrink:0}
+.exname{font-size:14px;font-weight:750}.exdetail{font-size:12px;color:#666;margin-top:4px}
+.tomorrow{background:#f1f1f1;border-radius:14px;padding:13px;margin-top:14px}.wfoot{font-size:12px;color:#666;line-height:1.5;margin-top:12px}
+
 </style>
 </head>
 <body>
 <main>
   <div class="top"><h1>Daily check-in</h1><button class="secondary" id="todayBtn" type="button">Today</button></div>
   <p class="sub">Your daily fat-loss log. Entries are saved in this browser on this device.</p>
-  <section class="card">
+  
+<section class="workout" aria-label="Today's workout">
+ <div class="whead"><div><div class="muted" id="workoutDate">TODAY'S PLAN</div><h2 class="wtitle" id="workoutTitle">Today's workout</h2><div class="muted" id="workoutFocus"></div></div><span class="wtag">TODAY</span></div>
+ <div class="exlist" id="todayExercises"></div>
+ <div class="wfoot" id="workoutRules">Warm up for 5–10 minutes. Use controlled reps and do not train through sharp joint pain.</div>
+ <div class="tomorrow"><strong id="tomorrowTitle">Tomorrow's workout</strong><div class="muted" id="tomorrowFocus"></div><div class="exdetail" id="tomorrowPreview"></div></div>
+</section>
+
+
+<section class="workout" id="motivationReelCard" aria-label="Daily motivation reel">
+ <div class="whead">
+  <div>
+   <div class="muted">DAILY MOTIVATION</div>
+   <h2 class="wtitle">Today's motivation reel</h2>
+   <div class="muted" id="motivationCaption">A saved reel to give your day a push.</div>
+  </div>
+  <span class="wtag">7:00 AM PLAN</span>
+ </div>
+ <p id="motivationNote">This rotates through your saved reels. It does not automatically discover new Instagram reels.</p>
+ <p><a id="motivationLink" href="https://www.instagram.com/reel/DVtkc44DNpP/?dlrf=Y2gyb2k2c3M4aTRn" target="_blank" rel="noopener noreferrer">Open today's Instagram reel ↗</a></p>
+ <div class="exdetail"><strong>Saved reels</strong><ol>
+  <li><a href="https://www.instagram.com/reel/DVtkc44DNpP/?dlrf=Y2gyb2k2c3M4aTRn" target="_blank" rel="noopener noreferrer">Motivation reel 1</a></li>
+  <li><a href="https://www.instagram.com/reel/DXVv851jP8v/?xtok=c3cxbHN0ZDI0d2w=" target="_blank" rel="noopener noreferrer">Motivation reel 2</a></li>
+ </ol></div>
+</section>
+<section class="card">
     <form id="entryForm">
       <div class="date field"><label for="date">Date</label><input id="date" type="date" required></div>
       <div class="grid">
@@ -117,9 +149,51 @@ $('importFile').addEventListener('change',async e=>{const f=e.target.files[0];if
 $('clearBtn').addEventListener('click',()=>{if(confirm('Delete every saved entry from this browser? Export a backup first if needed.')){localStorage.removeItem(KEY);render();$('status').textContent='All entries cleared.'}});
 setToday();render();
 </script>
+
+<script>
+const workoutPlan = [
+ {day:"Sunday",title:"Recovery",focus:"Rest or easy walking",items:[],note:"Rest day. Optional easy walking and gentle mobility."},
+ {day:"Monday",title:"Chest + Arms",focus:"Chest + Biceps + Triceps",items:[["🏋️","Machine Chest Press","3 × 8–12"],["🪽","Pec Deck / Machine Chest Fly","2 × 12–15"],["💪","Dumbbell Biceps Curl","3 × 10–12"],["🔻","Rope Triceps Pushdown","2 × 12–15"]]},
+ {day:"Tuesday",title:"Legs + Core",focus:"Legs + Core",items:[["🦵","Leg Press","3 × 10–12"],["🦿","Seated Leg Curl","3 × 10–15"],["🏋️","Dumbbell Romanian Deadlift","2 × 10–12"],["🧘","Plank","3 sets"]]},
+ {day:"Wednesday",title:"Back + Rear Delts",focus:"Back + Rear Delts + Biceps",items:[["🚣","Seated Cable Row","3 × 10–12"],["⬇️","Neutral-Grip Lat Pulldown","2 × 10–12"],["↔️","Reverse Pec Deck","2 × 12–15"],["💪","Cable Biceps Curl","2 × 12–15"]],note:"Keep back training moderate for balanced strength and posture, not maximum back width."},
+ {day:"Thursday",title:"Chest + Biceps",focus:"Chest + Biceps",items:[["🏋️","Incline Machine Chest Press","2 × 10–12"],["🪽","Cable Chest Fly","2 × 12–15"],["💪","Incline Dumbbell Curl","3 × 10–12"],["✊","Hammer Curl","2 × 10–12"]]},
+ {day:"Friday",title:"Legs + Arms + Core",focus:"Legs + Arms + Core",items:[["🦵","Leg Extension","3 × 12–15"],["🦿","Seated Leg Curl","2 × 12–15"],["💪","Dumbbell Biceps Curl","2 × 12"],["🔻","Rope Triceps Pushdown","2 × 12–15"],["🧘","Dead Bug","2 × 10 per side"]]},
+ {day:"Saturday",title:"Walking + Mobility",focus:"Optional light activity",items:[["🚶","Comfortable longer walk","As fits your schedule"],["🤸","Gentle mobility","Optional"]],note:"No mandatory weight training today."}
+];
+function renderWorkout(){
+ const now=new Date(), today=workoutPlan[now.getDay()];
+ const nextDate=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1), tomorrow=workoutPlan[nextDate.getDay()];
+ document.getElementById("workoutDate").textContent=now.toLocaleDateString(undefined,{weekday:"long",month:"short",day:"numeric"}).toUpperCase();
+ document.getElementById("workoutTitle").textContent=today.title;
+ document.getElementById("workoutFocus").textContent=today.focus;
+ document.getElementById("todayExercises").innerHTML=today.items.length?today.items.map(e=>`<div class="ex"><div class="expic" aria-hidden="true">${e[0]}</div><div><div class="exname">${e[1]}</div><div class="exdetail">${e[2]}</div></div></div>`).join(""):'<div class="muted">No weight training scheduled. Rest or take an easy walk if you like.</div>';
+ document.getElementById("workoutRules").textContent=today.note||"Warm up for 5–10 minutes. Rest 60–120 seconds between sets and finish most sets with 1–3 good reps left. Stop if you feel sharp joint pain.";
+ document.getElementById("tomorrowTitle").textContent="Tomorrow · "+tomorrow.day+" · "+tomorrow.title;
+ document.getElementById("tomorrowFocus").textContent=tomorrow.focus;
+ document.getElementById("tomorrowPreview").textContent=tomorrow.items.length?tomorrow.items.slice(0,3).map(e=>e[1]).join(" · ")+(tomorrow.items.length>3?" · and more":""):"Recovery day or easy walking.";
+}
+renderWorkout();
+</script>
+
 <script>
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js').catch(() => {}));
 }
 </script>
+
+// Rotate between the user's saved motivation reels by local calendar day.
+(function renderDailyMotivation(){
+ const reels = [
+  {url:"https://www.instagram.com/reel/DVtkc44DNpP/?dlrf=Y2gyb2k2c3M4aTRn", label:"Motivation reel 1"},
+  {url:"https://www.instagram.com/reel/DXVv851jP8v/?xtok=c3cxbHN0ZDI0d2w=", label:"Motivation reel 2"}
+ ];
+ const now = new Date();
+ const dayNumber = Math.floor(new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() / 86400000);
+ const reel = reels[((dayNumber % reels.length) + reels.length) % reels.length];
+ const link = document.getElementById("motivationLink");
+ const caption = document.getElementById("motivationCaption");
+ if(link){ link.href = reel.url; link.textContent = "Open today's Instagram reel: " + reel.label + " ↗"; }
+ if(caption){ caption.textContent = reel.label + " · Rotates daily between your saved reels"; }
+})();
+
 </body></html>
