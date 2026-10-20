@@ -42,12 +42,46 @@ table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}th,t
 .exname{font-size:14px;font-weight:750}.exdetail{font-size:12px;color:#666;margin-top:4px}
 .tomorrow{background:#f1f1f1;border-radius:14px;padding:13px;margin-top:14px}.wfoot{font-size:12px;color:#666;line-height:1.5;margin-top:12px}
 
+
+.goal-card{background:#fff;border:1px solid #e1e1e1;border-radius:22px;padding:18px;margin:0 0 20px;box-shadow:0 2px 8px #00000008}
+.goal-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.goal-top h2{font-size:21px;margin:0 0 5px}.goal-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:15px 0}
+.goal-stat{background:#f5f5f5;border-radius:15px;padding:12px;min-width:0}.goal-stat small{display:block;color:#666;font-size:12px}.goal-stat strong{font-size:21px;display:block;margin-top:4px;overflow-wrap:anywhere}
+.goal-progress{height:8px;background:#e9e9e9;border-radius:20px;overflow:hidden;margin-top:8px}.goal-progress span{display:block;height:100%;width:0;background:#16a34a;border-radius:20px;transition:width .2s}
+.goal-chart{width:100%;display:block;overflow:visible}.goal-legend{display:flex;gap:15px;flex-wrap:wrap;color:#555;font-size:12px;margin:10px 0 4px}.legend-line{display:inline-block;width:20px;border-top:3px solid #2563eb;vertical-align:middle;margin-right:5px}.legend-target{border-top:2px dashed #dc2626}
+.goal-form{background:#f6f6f6;border-radius:16px;padding:14px;margin-top:14px}.goal-form[hidden]{display:none}.goal-form .field{margin-bottom:12px}.goal-quote{margin:14px 0 0;padding:13px 14px;background:#f5f5f5;border-radius:14px;font-weight:650}.goal-quote small{display:block;color:#666;font-weight:500;margin-top:6px}
+@media(max-width:390px){.goal-card{padding:15px}.goal-stat strong{font-size:19px}}
+
 </style>
 </head>
 <body>
 <main>
   <div class="top"><h1>Daily check-in</h1><button class="secondary" id="todayBtn" type="button">Today</button></div>
   <p class="sub">Your daily fat-loss log. Entries are saved in this browser on this device.</p>
+
+<section class="goal-card" aria-label="Weight goal dashboard">
+ <div class="goal-top"><div><div class="muted">YOUR TARGET</div><h2 id="goalHeading">Weight goal dashboard</h2><div class="muted" id="goalSub">Set a target date and weight once. Your goal stays saved.</div></div><button class="secondary" type="button" id="goalResetBtn">Set goal</button></div>
+ <div id="goalMetrics" hidden>
+  <div class="goal-grid">
+   <div class="goal-stat"><small>Days remaining</small><strong id="goalDays">—</strong></div>
+   <div class="goal-stat"><small>Weight to lose</small><strong id="goalRemaining">—</strong></div>
+   <div class="goal-stat"><small>Goal progress</small><strong id="goalPercent">—</strong><div class="goal-progress"><span id="goalProgressBar"></span></div></div>
+   <div class="goal-stat"><small>Required pace</small><strong id="goalPace">—</strong></div>
+  </div>
+  <div class="muted" id="goalDetails"></div>
+  <h3 style="font-size:16px;margin:18px 0 4px">Weight trend</h3>
+  <div class="goal-legend"><span><i class="legend-line"></i>Logged weight</span><span><i class="legend-line legend-target"></i>Target weight</span></div>
+  <svg id="goalChart" class="goal-chart" viewBox="0 0 340 190" role="img" aria-label="Chart of logged weights and target weight"></svg>
+  <div class="muted" id="goalChartNote">Your chart updates whenever you save or edit a weigh-in.</div>
+ </div>
+ <div class="goal-form" id="goalForm" hidden>
+  <p style="font-size:13px;color:#555;margin:0 0 12px">These two settings are saved on this device. You only need to change them when you choose a new goal.</p>
+  <div class="field"><label for="goalDateInput">Target date</label><input id="goalDateInput" type="date" required></div>
+  <div class="field"><label for="goalWeightInput">Target weight (kg)</label><input id="goalWeightInput" type="number" min="1" max="500" step="0.1" placeholder="e.g. 82" required></div>
+  <div class="actions"><button class="primary" id="goalSaveBtn" type="button" style="width:auto;margin-top:0">Save goal</button><button class="secondary" id="goalCancelBtn" type="button">Cancel</button></div>
+  <div class="status" id="goalStatus" role="status"></div>
+ </div>
+ <div class="goal-quote" id="goalQuote">“Small steps, repeated, become remarkable progress.”<small>Daily reminder</small></div>
+</section>
   
 <section class="workout" aria-label="Today's workout">
  <div class="whead"><div><div class="muted" id="workoutDate">TODAY'S PLAN</div><h2 class="wtitle" id="workoutTitle">Today's workout</h2><div class="muted" id="workoutFocus"></div></div><span class="wtag">TODAY</span></div>
@@ -117,6 +151,62 @@ function localDate(){const d=new Date();return d.getFullYear()+'-'+String(d.getM
 function getEntries(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return []}}
 function saveEntries(a){localStorage.setItem(KEY,JSON.stringify(a))}
 function val(id){return $(id).value.trim()}
+
+const GOAL_KEY='daily-fat-loss-goal-v1';
+const goalQuotes=[
+ 'You do not need a perfect day. You need a day that moves you forward.',
+ 'Consistency beats intensity when intensity cannot be repeated.',
+ 'Progress is built by the ordinary choices you make on ordinary days.',
+ 'The scale reports a measurement, not your worth.',
+ 'A slow trend in the right direction is still the right direction.',
+ 'Keep the promise small enough to keep, then keep it again.',
+ 'You are building a routine, not trying to win a single day.',
+ 'One weigh-in is a data point. The trend is the story.',
+ 'Make the next choice a useful one. That is enough for now.',
+ 'You do not have to feel motivated to follow the plan.'
+];
+function getGoal(){try{return JSON.parse(localStorage.getItem(GOAL_KEY)||'null')}catch(e){return null}}
+function goalLocalDate(s){return new Date(s+'T00:00:00')}
+function daysBetween(a,b){return Math.ceil((goalLocalDate(b)-goalLocalDate(a))/86400000)}
+function goalQuote(){const day=Math.floor(Date.now()/86400000);const q=goalQuotes[((day%goalQuotes.length)+goalQuotes.length)%goalQuotes.length];$('goalQuote').innerHTML='“'+q+'”<small>Daily reminder · rotates each day</small>'}
+function drawGoalChart(entries,target){
+ const svg=$('goalChart'); const data=entries.filter(x=>x.date&&Number.isFinite(Number(x.weight))&&x.weight!=='' ).slice().sort((a,b)=>a.date.localeCompare(b.date));
+ if(!data.length){svg.innerHTML='<text x="170" y="88" text-anchor="middle" fill="#666" font-size="12">Log your first weight to start the chart.</text>';return}
+ const W=340,H=190,L=38,R=10,T=12,B=28,plotW=W-L-R,plotH=H-T-B;
+ const vals=data.map(x=>Number(x.weight));const lo=Math.min(...vals,target),hi=Math.max(...vals,target);const pad=Math.max((hi-lo)*.15,.8);const min=lo-pad,max=hi+pad;
+ const x=i=>data.length===1?L+plotW/2:L+i*plotW/(data.length-1);const y=v=>T+(max-v)*plotH/(max-min);
+ let out='';
+ for(let i=0;i<4;i++){const v=min+(max-min)*i/3,yy=y(v);out+=`<line x1="${L}" y1="${yy}" x2="${W-R}" y2="${yy}" stroke="#999" stroke-opacity=".2"/><text x="${L-7}" y="${yy+3}" text-anchor="end" font-size="9" fill="#666">${v.toFixed(1)}</text>`}
+ const ty=y(target);out+=`<line x1="${L}" y1="${ty}" x2="${W-R}" y2="${ty}" stroke="#dc2626" stroke-width="2" stroke-dasharray="5 4"/><text x="${W-R}" y="${Math.max(T+9,ty-5)}" text-anchor="end" font-size="9" fill="#dc2626">Target ${target.toFixed(1)} kg</text>`;
+ const pts=data.map((d,i)=>`${x(i)},${y(Number(d.weight))}`).join(' ');
+ if(data.length>1)out+=`<polyline points="${pts}" fill="none" stroke="#2563eb" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+ data.forEach((d,i)=>{out+=`<circle cx="${x(i)}" cy="${y(Number(d.weight))}" r="3.2" fill="#2563eb"><title>${d.date}: ${Number(d.weight).toFixed(1)} kg</title></circle>`});
+ out+=`<text x="${L}" y="${H-8}" font-size="9" fill="#666">${data[0].date}</text>`;
+ if(data.length>1)out+=`<text x="${W-R}" y="${H-8}" text-anchor="end" font-size="9" fill="#666">${data[data.length-1].date}</text>`;
+ svg.innerHTML=out;
+}
+function renderGoal(){
+ goalQuote();const goal=getGoal(),entries=getEntries();const form=$('goalForm');
+ if(!goal||!goal.date||!Number.isFinite(Number(goal.weight))){$('goalMetrics').hidden=true;$('goalHeading').textContent='Weight goal dashboard';$('goalSub').textContent='Set a target date and weight once. Your goal stays saved.';$('goalResetBtn').textContent='Set goal';return}
+ $('goalMetrics').hidden=false;$('goalHeading').textContent='Target: '+Number(goal.weight).toFixed(1)+' kg';$('goalSub').textContent='Deadline: '+goal.date;$('goalResetBtn').textContent='Reset / Change Goal';
+ const data=entries.filter(x=>x.date&&x.weight!==''&&Number.isFinite(Number(x.weight))).slice().sort((a,b)=>a.date.localeCompare(b.date));
+ const first=data[0],latest=data[data.length-1];
+ if(!first||!latest){$('goalDays').textContent=String(Math.max(0,daysBetween(localDate(),goal.date)));$('goalRemaining').textContent='—';$('goalPercent').textContent='0%';$('goalProgressBar').style.width='0%';$('goalPace').textContent='—';$('goalDetails').textContent='Log a weight to calculate progress and required pace. The starting weight will be the first entry in your tracker history.';drawGoalChart(data,Number(goal.weight));return}
+ const start=Number(first.weight),current=Number(latest.weight),target=Number(goal.weight),planned=start-target,remaining=Math.max(0,current-target),elapsed=daysBetween(first.date,localDate()),daysLeft=daysBetween(localDate(),goal.date);
+ let progress=planned===0?(current<=target?100:0):((start-current)/planned)*100;progress=Math.max(0,Math.min(100,progress));
+ const weekly=daysLeft>0?Math.max(0,current-target)/(daysLeft/7):null;
+ $('goalDays').textContent=daysLeft<0?'Deadline passed':String(daysLeft);
+ $('goalRemaining').textContent=remaining.toFixed(1)+' kg';
+ $('goalPercent').textContent=progress.toFixed(0)+'%';$('goalProgressBar').style.width=progress+'%';
+ $('goalPace').textContent=weekly===null?'Deadline passed':weekly.toFixed(2)+' kg/wk';
+ $('goalDetails').textContent=`Starting weight: ${start.toFixed(1)} kg (${first.date}) · Latest: ${current.toFixed(1)} kg (${latest.date}) · Target: ${target.toFixed(1)} kg. Progress is measured from your first recorded weight.`;
+ $('goalChartNote').textContent=data.length===1?'Add another weigh-in to see the weight trend. The dashed line marks your target weight.':'Showing '+data.length+' recorded weigh-ins. The dashed line marks your target weight.';
+ drawGoalChart(data,target);
+}
+$('goalResetBtn').addEventListener('click',()=>{const g=getGoal();$('goalDateInput').value=g?.date||'';$('goalWeightInput').value=g?.weight??'';$('goalForm').hidden=false;$('goalStatus').textContent='';$('goalDateInput').focus()});
+$('goalCancelBtn').addEventListener('click',()=>{$('goalForm').hidden=true});
+$('goalSaveBtn').addEventListener('click',()=>{const date=$('goalDateInput').value,weight=Number($('goalWeightInput').value);if(!date||!Number.isFinite(weight)||weight<=0){$('goalStatus').textContent='Enter a target date and a valid target weight.';return}localStorage.setItem(GOAL_KEY,JSON.stringify({date,weight}));$('goalForm').hidden=true;renderGoal();$('goalStatus').textContent='';});
+
 function setToday(){ $('date').value=localDate() }
 $('todayBtn').addEventListener('click',setToday);
 $('entryForm').addEventListener('submit',e=>{
@@ -137,6 +227,7 @@ function render(){
  else{$('latestWeight').textContent='—';$('weightChange').textContent='—'}
  $('history').innerHTML=a.length?a.slice().reverse().map(x=>`<tr><td>${esc(x.date)}</td><td>${esc(x.weight)}</td><td>${esc(x.calories)}</td><td>${esc(x.protein||'—')}</td><td>${esc(x.walking||'—')}</td><td>${esc(x.gym||'—')}</td><td><button class="rowbtn" data-date="${esc(x.date)}">Edit</button></td></tr>`).join(''):'<tr><td colspan="7">No entries yet.</td></tr>';
  document.querySelectorAll('[data-date]').forEach(b=>b.addEventListener('click',()=>{const x=getEntries().find(v=>v.date===b.dataset.date);if(!x)return;fields.forEach(k=>$(k).value=x[k]||'');document.querySelector(`input[name="gym"][value="${x.gym||'Yes'}"]`).checked=true;$('status').textContent='Editing '+x.date+'. Save to update.';window.scrollTo({top:0,behavior:'smooth'})}));
+ renderGoal();
 }
 $('exportBtn').addEventListener('click',()=>{
  const a=getEntries();if(!a.length){alert('No entries to export yet.');return}
@@ -147,7 +238,7 @@ $('exportBtn').addEventListener('click',()=>{
 $('importBtn').addEventListener('click',()=>$('importFile').click());
 $('importFile').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;try{const a=JSON.parse(await f.text());if(!Array.isArray(a))throw Error();if(!confirm('Import backup? Imported dates will replace matching dates.'))return;const m=new Map(getEntries().map(x=>[x.date,x]));a.forEach(x=>m.set(x.date,x));saveEntries([...m.values()].sort((x,y)=>x.date.localeCompare(y.date)));render();$('status').textContent='Backup imported.'}catch(err){alert('Could not read that JSON backup.')}e.target.value=''});
 $('clearBtn').addEventListener('click',()=>{if(confirm('Delete every saved entry from this browser? Export a backup first if needed.')){localStorage.removeItem(KEY);render();$('status').textContent='All entries cleared.'}});
-setToday();render();
+setToday();render();renderGoal();
 </script>
 
 <script>
